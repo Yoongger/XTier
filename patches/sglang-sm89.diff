@@ -1,0 +1,82 @@
+diff --git a/python/sglang/kernels/ops/gemm/fp8_kernel.py b/python/sglang/kernels/ops/gemm/fp8_kernel.py
+index 68c5c71d2e..d08c4d4890 100644
+--- a/python/sglang/kernels/ops/gemm/fp8_kernel.py
++++ b/python/sglang/kernels/ops/gemm/fp8_kernel.py
+@@ -635,10 +635,15 @@ def w8a8_block_fp8_matmul_triton(
+ 
+     # Split-K accumulates K in SPLIT_K separate fp32 partials, so its results
+     # do not match the single-accumulator kernels bit-for-bit.
+-    hopper_tuned = get_platform().is_sm90 and (
++    # The kernel itself is plain Triton (no TMA / wgmma): SPLIT_K is a 2D grid
++    # plus a reduction, SWAP_AB transposes the two operands. Both need nothing
++    # beyond the FP8 tensor cores, which SM89 (Ada) has had since 8.9. The
++    # arch gate used to be is_sm90 only, i.e. "never validated elsewhere".
++    split_k_arch_ok = get_platform().is_sm90 or get_platform().is_sm89
++    tuned_kernel = split_k_arch_ok and (
+         config.get("SWAP_AB", False) or config.get("SPLIT_K", 1) > 1
+     )
+-    if hopper_tuned:
++    if tuned_kernel:
+         kernel = _w8a8_block_fp8_matmul_hopper
+     elif _is_gfx1250:
+         config = {**config, "num_stages": 1}
+@@ -646,7 +651,7 @@ def w8a8_block_fp8_matmul_triton(
+     else:
+         kernel = _w8a8_block_fp8_matmul
+ 
+-    split_k = config.get("SPLIT_K", 1) if hopper_tuned else 1
++    split_k = config.get("SPLIT_K", 1) if tuned_kernel else 1
+     if split_k > 1:
+         assert split_k & (split_k - 1) == 0
+         partials = torch.empty((split_k, M, N), device=A.device, dtype=torch.float32)
+@@ -659,7 +664,7 @@ def w8a8_block_fp8_matmul_triton(
+         blocks = triton.cdiv(M, META["BLOCK_SIZE_M"]) * triton.cdiv(
+             N, META["BLOCK_SIZE_N"]
+         )
+-        return (blocks, split_k) if hopper_tuned else (blocks,)
++        return (blocks, split_k) if tuned_kernel else (blocks,)
+ 
+     kernel[grid](
+         A,
+diff --git a/python/sglang/srt/runtime_context.py b/python/sglang/srt/runtime_context.py
+index b87ea819b4..e8fc5e988d 100644
+--- a/python/sglang/srt/runtime_context.py
++++ b/python/sglang/srt/runtime_context.py
+@@ -1849,6 +1849,7 @@ _PLATFORM_PROBES: Dict[str, str] = {
+     "is_mlu": "is_mlu",
+     "is_sail": "is_sail",
+     "is_sm90": "is_sm90_supported",
++    "is_sm89": "is_sm89_supported",
+     "is_sm100": "is_sm100_supported",
+     "is_sm100_or_sm110": "is_sm100_or_sm110_supported",
+     "is_sm110": "is_sm110_supported",
+diff --git a/python/sglang/srt/utils/device.py b/python/sglang/srt/utils/device.py
+index 2ed2828e07..47b98171fd 100644
+--- a/python/sglang/srt/utils/device.py
++++ b/python/sglang/srt/utils/device.py
+@@ -66,6 +66,7 @@ __all__ = [
+     "is_sm100_or_sm110_supported",
+     "is_sm110_supported",
+     "is_sm80_supported",
++    "is_sm89_supported",
+     "is_sm90_supported",
+     "is_sm120",
+     "is_sm121",
+@@ -320,6 +321,17 @@ is_sm100_supported = lru_cache(maxsize=1)(
+ )
+ 
+ 
++# Ada Lovelace (SM89): FP8 tensor cores exist since SM89, but the arch has no
++# TMA/wgmma, so the Hopper-only kernels stay off. The generic Triton kernels
++# (block-FP8 W8A8 with SPLIT_K / SWAP_AB) do run here, so features that only
++# need "FP8 tensor cores" may gate on this instead of is_sm90.
++is_sm89_supported = lru_cache(maxsize=1)(
++    partial(
++        _check_cuda_device_version, device_capability_majors=[8], cuda_version=(12, 0)
++    )
++)
++
++
+ # Datacenter Blackwell (SM100) plus SM110; excludes consumer Blackwell (SM120).
+ # This is the arch set flash_attn.cute accepts for the absorbed-MLA qv argument.
+ is_sm100_or_sm110_supported = lru_cache(maxsize=1)(
