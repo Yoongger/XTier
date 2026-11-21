@@ -16,6 +16,8 @@ pip-freeze*.txt
 # debugging backups of the launch script; the real copies live in snapshots/prod/
 *.bak-*
 *.ok-*
+# drop-in launch script of an earlier experiment (sourced by the prod script)
+run-ds41-l20-smoke.sh
 # full-tree snapshot taken right before this organize/commit pass
 .persist-backup-*/
 # local proxy prefix
