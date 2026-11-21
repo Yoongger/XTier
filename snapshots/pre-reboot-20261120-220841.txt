@@ -1,0 +1,131 @@
+===== 当前内核命令行 (rc=0) =====
+BOOT_IMAGE=/vmlinuz-6.8.0-149-generic root=/dev/mapper/ubuntu--vg-ubuntu--lv ro intel_iommu=on iommu=pt pcie_aspm=off
+
+===== /etc/default/grub (rc=0) =====
+GRUB_DEFAULT=0
+GRUB_TIMEOUT_STYLE=hidden
+GRUB_TIMEOUT=0
+GRUB_DISTRIBUTOR=`( . /etc/os-release; echo ${NAME:-Ubuntu} ) 2>/dev/null || echo Ubuntu`
+GRUB_CMDLINE_LINUX_DEFAULT=""
+GRUB_CMDLINE_LINUX=""
+
+===== grub.d 目录 (rc=0) =====
+Apr 4096 24
+Nov 4096 17
+Apr 67 24
+
+===== grub.d 内容 (rc=0) =====
+--- /etc/default/grub.d/99-nvidia.cfg
+GRUB_CMDLINE_LINUX_DEFAULT="intel_iommu=on iommu=pt pcie_aspm=off"
+
+===== IOMMU 内核模块 (rc=0) =====
+
+
+===== IOMMU 组数量 (rc=0) =====
+iommu_groups: 316
+/sys/class/iommu/dmar0
+/sys/class/iommu/dmar1
+/sys/class/iommu/dmar10
+/sys/class/iommu/dmar11
+/sys/class/iommu/dmar12
+/sys/class/iommu/dmar13
+/sys/class/iommu/dmar14
+/sys/class/iommu/dmar15
+/sys/class/iommu/dmar16
+/sys/class/iommu/dmar17
+/sys/class/iommu/dmar18
+/sys/class/iommu/dmar19
+/sys/class/iommu/dmar2
+/sys/class/iommu/dmar3
+/sys/class/iommu/dmar4
+/sys/class/iommu/dmar5
+/sys/class/iommu/dmar6
+/sys/class/iommu/dmar7
+/sys/class/iommu/dmar8
+/sys/class/iommu/dmar9
+
+===== dmesg IOMMU (rc=0) =====
+[sudo] password for lenovo: [    9.321374] pci 0000:ff:1e.4: Adding to iommu group 315
+[    9.321485] pci 0000:ff:1e.5: Adding to iommu group 315
+[    9.321595] pci 0000:ff:1e.6: Adding to iommu group 315
+[    9.321704] pci 0000:ff:1e.7: Adding to iommu group 315
+[   10.752695] pci 10000:00:01.0: Adding to iommu group 27
+[   10.759892] pci 10000:00:03.0: Adding to iommu group 27
+[   10.767334] pci 10000:00:05.0: Adding to iommu group 27
+[   10.774604] pci 10000:00:07.0: Adding to iommu group 27
+[   10.820102] pci 10000:0a:00.0: Adding to iommu group 27
+[   10.832603] pci 10000:0b:00.0: Adding to iommu group 27
+[   10.839144] pci 10000:0c:00.0: Adding to iommu group 27
+[   10.848925] pci 10000:0d:00.0: Adding to iommu group 27
+
+===== DeepSeek unit 开机自启 (rc=0) =====
+enabled
+active
+
+===== 所有 enabled 的 llm 相关 unit (rc=0) =====
+DeepSeek-V4.1-Flash.service enabled
+Qwen3.8-Flash-Next-XTier.service enabled
+
+===== 所有 running 的 llm 相关 unit (rc=0) =====
+DeepSeek-V4.1-Flash.service active running
+
+===== GPU 占用与进程 (rc=0) =====
+GPU-fc3bd47d-2ff7-c7e2-4f6d-ce822cd37cd7, 677413, 41958 MiB
+GPU-7669835b-9d39-6d62-3500-4de52c01b53b, 677414, 41958 MiB
+--- gpu uuid map
+0, GPU-fc3bd47d-2ff7-c7e2-4f6d-ce822cd37cd7, 42264 MiB
+1, GPU-c52bba63-520b-d3f7-ce38-21fa7b92bc31, 1 MiB
+2, GPU-7669835b-9d39-6d62-3500-4de52c01b53b, 42264 MiB
+3, GPU-6dd1dff2-f2d8-5a0a-3c90-fe8ef6dc5859, 1 MiB
+
+===== GPU3 上的进程 (rc=0) =====
+
+
+===== 全部 GPU 占用（各卡） (rc=0) =====
+0, 42264 MiB, 6248 MiB, 0 %
+1, 1 MiB, 48510 MiB, 0 %
+2, 42264 MiB, 6248 MiB, 0 %
+3, 1 MiB, 48510 MiB, 0 %
+
+===== litellm 开机自启 (rc=0) =====
+enabled
+litellm-metrics.service disabled
+litellm.service enabled
+
+===== 当前 live 脚本 md5 (rc=0) =====
+ab03764d4888b9966534a8ce61a96381  /opt/Xtier/run-ds41-l20-tp2.sh
+
+===== unit md5 (rc=0) =====
+7169367b7d393db031f753feb2c02c02  /etc/systemd/system/DeepSeek-V4.1-Flash.service
+
+===== 运行中的进程（llm 相关） (rc=0) =====
+331878 /opt/miniforge3/envs/litellm/bin/python3.12 /opt/miniforge3/envs/litellm/bin/litellm --config
+331879 /opt/miniforge3/envs/litellm/bin/python3 -m litellm.proxy.prometheus_metrics_server
+332594 /opt/miniforge3/envs/litellm/bin/python3.12 -c from
+332595 /opt/miniforge3/envs/litellm/bin/python3.12 -c from
+332596 /opt/miniforge3/envs/litellm/bin/python3.12 -c from
+332597 /opt/miniforge3/envs/litellm/bin/python3.12 -c from
+332598 /opt/miniforge3/envs/litellm/bin/python3.12 -c from
+332599 /opt/miniforge3/envs/litellm/bin/python3.12 -c from
+332600 /opt/miniforge3/envs/litellm/bin/python3.12 -c from
+332601 /opt/miniforge3/envs/litellm/bin/python3.12 -c from
+332602 /opt/miniforge3/envs/litellm/bin/python3.12 -c from
+332603 /opt/miniforge3/envs/litellm/bin/python3.12 -c from
+332604 /opt/miniforge3/envs/litellm/bin/python3.12 -c from
+332605 /opt/miniforge3/envs/litellm/bin/python3.12 -c from
+332606 /opt/miniforge3/envs/litellm/bin/python3.12 -c from
+332607 /opt/miniforge3/envs/litellm/bin/python3.12 -c from
+332608 /opt/miniforge3/envs/litellm/bin/python3.12 -c from
+332609 /opt/miniforge3/envs/litellm/bin/python3.12 -c from
+332610 /opt/miniforge3/envs/litellm/bin/python3.12 -c from
+335472 postgres: 16/main: litellm
+
+===== 磁盘空间 (rc=0) =====
+Filesystem                         Size  Used Avail Use% Mounted on
+/dev/mapper/ubuntu--vg-ubuntu--lv   98G   64G   30G  69% /
+/dev/mapper/ubuntu--vg-lv--0       4.9T  3.7T  988G  80% /opt
+
+===== 内存 (rc=0) =====
+total        used        free      shared  buff/cache   available
+Mem:            1007         345         521          18         165         662
+Swap:              7           0           7

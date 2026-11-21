@@ -1,0 +1,145 @@
+{
+ "tag": "IOMMU_OFF",
+ "phase": "full",
+ "cmdline": "BOOT_IMAGE=/vmlinuz-6.8.0-149-generic root=/dev/mapper/ubuntu--vg-ubuntu--lv ro intel_iommu=off iommu=off pcie_aspm=off",
+ "t": "2026-11-20 22:56:34",
+ "s4": {
+  "tag": "IOMMU_OFF_4",
+  "t_start": "2026-11-20 22:57:16",
+  "t_end": "2026-11-20 23:02:20",
+  "rounds": [
+   {
+    "r": 1,
+    "wall": 42.1,
+    "tok": 4007,
+    "n": 3995,
+    "p50": 59,
+    "p95": 108,
+    "mean": 77,
+    "gt200": 0.6,
+    "client_tps": 95.17814726840855,
+    "ttft": 3.6308333333333334
+   },
+   {
+    "r": 2,
+    "wall": 37.8,
+    "tok": 4156,
+    "n": 4144,
+    "p50": 59,
+    "p95": 105,
+    "mean": 79,
+    "gt200": 0.6,
+    "client_tps": 109.94708994708995,
+    "ttft": 4.036666666666666
+   },
+   {
+    "r": 3,
+    "wall": 41.4,
+    "tok": 3787,
+    "n": 3775,
+    "p50": 59,
+    "p95": 108,
+    "mean": 79,
+    "gt200": 0.6,
+    "client_tps": 91.47342995169082,
+    "ttft": 3.77
+   }
+  ],
+  "srv": {
+   "4": "n=57 avg_running=4.00 avg_accept=2.89 avg_tps=145.4 median_tps=162.9",
+   "None": "n=87 avg_running=3.41 avg_accept=2.96 avg_tps=133.1 median_tps=153.8"
+  },
+  "nrestart": "0"
+ },
+ "s12": {
+  "tag": "IOMMU_OFF_12",
+  "t_start": "2026-11-20 23:02:59",
+  "t_end": "2026-11-20 23:15:54",
+  "rounds": [
+   {
+    "r": 1,
+    "wall": 115.5,
+    "tok": 9090,
+    "n": 9054,
+    "p50": 166,
+    "p95": 210,
+    "mean": 185,
+    "gt200": 7.9,
+    "client_tps": 78.7012987012987,
+    "ttft": 28.75333333333333
+   },
+   {
+    "r": 2,
+    "wall": 113.5,
+    "tok": 9249,
+    "n": 9213,
+    "p50": 167,
+    "p95": 197,
+    "mean": 177,
+    "gt200": 3.6,
+    "client_tps": 81.48898678414096,
+    "ttft": 28.52972222222222
+   },
+   {
+    "r": 3,
+    "wall": 119.0,
+    "tok": 9397,
+    "n": 9361,
+    "p50": 167,
+    "p95": 204,
+    "mean": 185,
+    "gt200": 6.5,
+    "client_tps": 78.96638655462185,
+    "ttft": 27.676944444444445
+   }
+  ],
+  "srv": {
+   "12": "(no samples)",
+   "None": "n=107 avg_running=6.45 avg_accept=3.65 avg_tps=143.6 median_tps=148.7"
+  },
+  "nrestart": "0"
+ },
+ "prefill": {
+  "rounds": [
+   {
+    "round": 1,
+    "wall": 93.35,
+    "seqs": 14,
+    "new_token": 347616,
+    "prefill_tps": 3723.8,
+    "ttft_s": 60.62,
+    "max_ttft_s": 93.33,
+    "pcie_tx_MBps": 0.58,
+    "pcie_rx_MBps": 0.15
+   },
+   {
+    "round": 2,
+    "wall": 91.49,
+    "seqs": 14,
+    "new_token": 342216,
+    "prefill_tps": 3740.5,
+    "ttft_s": 59.34,
+    "max_ttft_s": 91.47,
+    "pcie_tx_MBps": 0.57,
+    "pcie_rx_MBps": 0.14
+   },
+   {
+    "round": 3,
+    "wall": 91.01,
+    "seqs": 14,
+    "new_token": 342216,
+    "prefill_tps": 3760.4,
+    "ttft_s": 59.04,
+    "max_ttft_s": 90.99,
+    "pcie_tx_MBps": 0.57,
+    "pcie_rx_MBps": 0.14
+   }
+  ],
+  "prefill_tps": 3741.57,
+  "ttft_s": 59.67,
+  "wall_s": 91.95,
+  "pcie_tx_MBps": 0.57,
+  "pcie_rx_MBps": 0.14
+ },
+ "cache_tail": "[xtier] XTier cache: 200 windows, hit 0.612, 24.5 distinct experts and 701 us CPU per layer call; 165315 swaps in 5980 rounds so far, 97 prompts, +0 of +43 slots\n[xtier] XTier cache: 200 windows, hit 0.612, 24.5 distinct experts and 694 us CPU per layer call; 158596 swaps in 5694 rounds so far, 97 prompts, +0 of +43 slots\n"
+}
