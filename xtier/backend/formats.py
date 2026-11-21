@@ -4,6 +4,7 @@ block scales s13 / s2 as bytes, global scales g13 [E, 2] / g2 [E]).
 """
 
 import logging
+import os
 import time
 
 import torch
@@ -36,6 +37,95 @@ def _gate_up(t: torch.Tensor, up_first: bool) -> torch.Tensor:
         return t.contiguous()
     half = t.shape[1] // 2
     return torch.cat([t[:, half:], t[:, :half]], dim=1).contiguous()
+
+
+def _dequant_fp8_blocks(weight: torch.Tensor, scale_inv: torch.Tensor) -> torch.Tensor:
+    """FP8 (E4M3) block-quantized weights -> BF16: weight * scale_inv per block.
+
+    The scale is the reciprocal (SGLang's *_weight_scale_inv) and the block shape comes from the scale
+    tensor's shape (the checkpoint's blocks are 128x128 here). BF16 keeps every E4M3 value exactly; only the
+    scaled product is rounded to BF16 (the engine's FP4 path rounds the same way).
+    """
+    E, R, C = weight.shape
+    sr, sc = scale_inv.shape[-2], scale_inv.shape[-1]
+    bn, bk = (R + sr - 1) // sr, (C + sc - 1) // sc
+    dev = weight.device
+    out = torch.empty((E, R, C), dtype=torch.bfloat16, device=dev)
+    for r0 in range(0, R, bn):
+        for c0 in range(0, C, bk):
+            rs = min(bn, R - r0)
+            cs = min(bk, C - c0)
+            blk = weight[:, r0:r0 + rs, c0:c0 + cs].to(torch.float32)
+            si = scale_inv[:, r0 // bn, c0 // bk].to(torch.float32).reshape(E, 1, 1)
+            out[:, r0:r0 + rs, c0:c0 + cs] = (blk * si).to(torch.bfloat16)
+    return out
+
+
+class Fp8BlockExpertsAsBf16(Format):
+    """FP8 (E4M3) block-quantized experts (BF16 block scales, e.g. 128x128) for the CPU engine.
+
+    The engine's FP4 formats (nvfp4 / mxfp4) cannot hold these weights; the engine gained a BF16 expert
+    format (scale_format=2) for them, and this class hands it the same weights dequantized to BF16.
+    FP8 -> BF16 keeps every weight value exactly (E4M3 fits in BF16); a 4-bit NVFP4 conversion instead
+    would cost 9.5% of the MoE output (measured on this checkpoint's layer 0)."""
+
+    name = 'bf16'
+    required = {'w13_weight': 'w13', 'w2_weight': 'w2',
+                'w13_weight_scale_inv': 'w13', 'w2_weight_scale_inv': 'w2'}
+
+    def engine_inputs(self, layer, up_first):
+        dev = layer.w13_weight.data.device
+        w13 = _gate_up(layer.w13_weight.data, up_first).to(dev)
+        w2 = layer.w2_weight.data.to(dev)
+        s13 = layer.w13_weight_scale_inv.data.to(dev)
+        s2 = layer.w2_weight_scale_inv.data.to(dev)
+        w13b = _dequant_fp8_blocks(w13, s13)
+        w2b = _dequant_fp8_blocks(w2, s2)
+        logger.info('xtier: %d FP8 experts dequantized to BF16 for the CPU engine (lossless)', w13.shape[0])
+        dummy = torch.ones((1,), dtype=torch.uint8)
+        return w13b, w2b, dummy, dummy, *self.globals(layer)
+
+    def globals(self, layer):
+        E = layer.w13_weight.data.shape[0]
+        return torch.ones((E, 2), dtype=torch.float32), torch.ones((E,), dtype=torch.float32)
+
+
+class Fp8BlockExpertsAsNvFp4(Format):
+    """FP8 (E4M3) block-quantized experts -> NVFP4 for the CPU engine (the engine's native format).
+
+    FP8 -> BF16 is lossless; BF16 -> NVFP4 is the 4-bit step (9.5% of the MoE output, measured on this
+    checkpoint). The engine's nvfp4 path is what the author's Qwen3.8 production setup uses (180 hot slots
+    per layer, hit rate 0.92); the bf16 format keeps the precision but fits a quarter of the hot slots."""
+
+    name = 'nvfp4'
+    required = {'w13_weight': 'w13', 'w2_weight': 'w2',
+                'w13_weight_scale_inv': 'w13', 'w2_weight_scale_inv': 'w2'}
+
+    def engine_inputs(self, layer, up_first):
+        dev = layer.w13_weight.data.device
+        w13 = _gate_up(layer.w13_weight.data, up_first).to(dev)
+        w2 = layer.w2_weight.data.to(dev)
+        s13 = layer.w13_weight_scale_inv.data.to(dev)
+        s2 = layer.w2_weight_scale_inv.data.to(dev)
+        E, I2, H = w13.shape
+        I = I2 // 2
+        q13 = torch.empty((E, I2, H // 2), dtype=torch.uint8)
+        s13b = torch.empty((E, I2, H // 16), dtype=torch.uint8)
+        q2 = torch.empty((E, H, I // 2), dtype=torch.uint8)
+        s2b = torch.empty((E, H, I // 16), dtype=torch.uint8)
+        g13 = torch.empty((E, 2), dtype=torch.float32)
+        g2 = torch.empty((E,), dtype=torch.float32)
+        for e in range(E):
+            m = _dequant_fp8_blocks(w13[e:e + 1], s13[e:e + 1])[0].float()
+            for j in (0, 1):   # gate rows, up rows: a global scale each
+                rows = slice(j * I, (j + 1) * I)
+                q, sc, g = nvfp4_encode(m[rows])
+                q13[e, rows], s13b[e, rows], g13[e, j] = q.to(torch.uint8).cpu(), sc.view(torch.uint8).cpu(), g.item()
+            q, sc, g = nvfp4_encode(_dequant_fp8_blocks(w2[e:e + 1], s2[e:e + 1])[0].float())
+            q2[e], s2b[e], g2[e] = q.to(torch.uint8).cpu(), sc.view(torch.uint8).cpu(), g.item()
+        logger.info('xtier: %d FP8 experts quantized to NVFP4 for the CPU engine (4-bit: 9.5%% of the MoE output)',
+                    E)
+        return q13, q2, s13b, s2b, g13, g2
 
 
 class ModelOptNvFp4(Format):
@@ -166,6 +256,12 @@ def detect(gpu_method, draft=False) -> Format:
         return ModelOptNvFp4()
     if name == 'Fp8MoEMethod' and getattr(gpu_method, 'is_fp4_expert', False):
         return Fp8Fp4Experts()
+    if name == 'Fp8MoEMethod':
+        # FP8 E4M3 experts with BF16 block scales (Qwen3.8 FP8): the CPU engine takes them as BF16 (lossless)
+        # or as NVFP4 (4-bit, the engine's native format: four times smaller, four times more hot slots).
+        if os.environ.get('XTIER_FP8_EXPERT_FORMAT', 'nvfp4').lower() == 'bf16':
+            return Fp8BlockExpertsAsBf16()
+        return Fp8BlockExpertsAsNvFp4()
     if name == 'Mxfp4FlashinferCutlassMoEMethod' and getattr(getattr(gpu_method, '_fp8', None), 'is_fp4_expert', False):
         return Fp8Fp4Experts()   # SGLang's SM90 / SM120 choice for these experts: Fp8MoEMethod's parameters, E8M0 scales
     if name == 'CompressedTensorsFusedMoEMethod':

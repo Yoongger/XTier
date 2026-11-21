@@ -508,6 +508,9 @@ class Prefill:
     def __init__(self, experts, pointers, native=None, hidden=2560, inter=640, swiglu_limit=0.0, swiglu_alpha=1.0,
                  swiglu_beta=0.0):
         self.mxfp4 = getattr(native, 'scale_format', 'nvfp4') == 'mxfp4'
+        # BF16 experts (scale_format 2): the weights are already BF16 in the engine's layout, so the
+        # unpack step is skipped; the kernels still take the UNPACKED branch (BF16 weights, no scales).
+        self.bf16_weights = getattr(native, 'scale_format', 'nvfp4') == 'bf16'
         if self.mxfp4 and os.environ.get('XTIER_PREFILL_FROM_SHARDS', '1') != '1':
             raise ValueError('MXFP4 requires native scale shards')
         self.scale_group = 32 if self.mxfp4 else 16
@@ -705,6 +708,9 @@ class Prefill:
         n_chunks = (E + CH - 1) // CH
         n_slots = 1 if n_chunks == 1 else 2
         unpacked = os.environ.get('XTIER_PREFILL_UNPACK', '0') == '1'
+        # BF16 experts: the staged weights are BF16 already -> no unpack, but the kernel needs the
+        # UNPACKED branch (it reads BF16 weights and applies no block scale).
+        unpack_kernel = unpacked or self.bf16_weights
         if os.environ.get('XTIER_PREFILL_FP4') == '1' and self._fp4_ready(output_dtype):
             return self._run_fp4(x, out, ids, routing, m, k, stream)
         if (os.environ.get('XTIER_PREFILL_OVERLAP') == '1' and unpacked and n_chunks > 1
@@ -792,7 +798,7 @@ class Prefill:
                     nslot = (slot + 1) % n_slots
                     if n_slots > 1:
                         upload(nxt, nslot)
-                if unpacked:
+                if unpacked and not self.bf16_weights:
                     shape = (CH, 2 * I, H)
                     if _unpacked is None or tuple(_unpacked[0].shape) != shape:
                         _unpacked = [torch.empty(shape, dtype=torch.bfloat16, device='cuda'),
