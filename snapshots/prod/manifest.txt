@@ -1,0 +1,118 @@
+# DeepSeek-V4.1-Flash 生产配置快照
+生成时间: 2026-11-21 00:11:06
+主机: 10.75.20.27 (wentian)
+
+## 关键参数（实际生效值，来自运行中进程命令行）
+  --port	8001
+  --tp-size	2
+  --	--prefill-decode-interval
+  32	--schedule-policy
+  fcfs	--
+  --max-running-requests	8
+  --chunked-prefill-size	32768
+  --max-prefill-tokens	32768
+  --prefill-max-requests	8
+  --cuda-graph-max-bs-decode	8
+  --context-length	262144
+  --max-total-tokens	1572864
+  --mem-fraction-static	0.88
+  --	--max-mamba-cache-size
+  16	--
+  --speculative-algorithm	DSPARK
+  --speculative-dspark-block-size	5
+  --speculative-num-draft-tokens	6
+
+## unit Environment（37 项）
+  CUDA_VISIBLE_DEVICES=0,2
+  NCCL_P2P_LEVEL=PHB
+  XTIER_TP_NODES=0|1
+  XTIER_THREADS=32
+  XTIER_THP=0
+  DSPARK=1
+  SPS_TABLE=/opt/Xtier/sps-table-l20-gpu02.json
+  SGLANG_RAGGED_VERIFY_MODE=compact
+  MAMBA_CACHE=16
+  XTIER_CACHE_SLOTS=43
+  XTIER_CACHE_ELASTIC=1
+  XTIER_CACHE_ELASTIC_BASE=0.5
+  XTIER_CACHE_ELASTIC_MAX_SLOTS=64
+  XTIER_CACHE_EVERY=2
+  XTIER_CACHE_SWAPS=32
+  XTIER_CACHE_MIN_GAIN=3
+  XTIER_CACHE_DECAY=0.9
+  XTIER_CACHE_PROMPT_ROUNDS=8
+  XTIER_CACHE_PROMPT_SWAPS=64
+  XTIER_CACHE_PROFILE=/opt/Xtier/ds41-profile-l20.json
+  XTIER_SPIN_COUNT=32768
+  XTIER_ENGRAM_CACHE_GIB=4
+  M=/opt/models/unsloth/DeepSeek-V4.1-Flash-1017
+  PORT=8001
+  TP_SIZE=2
+  PDI=32
+  SCHEDULE=fcfs
+  MAX_REQ=8
+  CHUNK=32768
+  PREFILL_TOKENS=32768
+  PREFILL_REQ=8
+  GRAPH_BS=8
+  CONTEXT=262144
+  KV_POOL=1572864
+  MEM=0.88
+  PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+  RUSTUP_TOOLCHAIN=1.92-x86_64-unknown-linux-gnu
+
+## 脚本里可覆盖的变量（脚本默认值，unit 必须与之同值）
+  CHUNK=32768
+  CONTEXT=262144
+  CUDA_VISIBLE_DEVICES=0,2
+  DRYRUN=0
+  DSPARK=1
+  GRAPH_BS=8
+  KV_POOL=1572864
+  MAMBA_CACHE=16
+  MAX_REQ=8
+  MEM=0.88
+  M=/opt/models/unsloth/DeepSeek-V4.1-Flash-1017
+  NCCL_P2P_LEVEL=PHB
+  PDI=32
+  PORT=8001
+  PREFILL_REQ=8
+  PREFILL_TOKENS=32768
+  PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+  RUSTUP_TOOLCHAIN=1.92-x86_64-unknown-linux-gnu
+  SCHEDULE=fcfs
+  SGLANG_RAGGED_VERIFY_MODE=compact
+  SPS_TABLE=
+  SPS_TABLE=/opt/Xtier/sps-table-l20-gpu02.json
+  TP_SIZE=2
+  XTIER_CACHE_DECAY=0.9
+  XTIER_CACHE_ELASTIC=1
+  XTIER_CACHE_ELASTIC_BASE=0.5
+  XTIER_CACHE_ELASTIC_MAX_SLOTS=64
+  XTIER_CACHE_EVERY=2
+  XTIER_CACHE_MIN_GAIN=3
+  XTIER_CACHE_PROFILE=/opt/Xtier/ds41-profile-l20.json
+  XTIER_CACHE_PROMPT_ROUNDS=8
+  XTIER_CACHE_PROMPT_SWAPS=64
+  XTIER_CACHE_SLOTS=43
+  XTIER_CACHE_SWAPS=32
+  XTIER_DOWN_BK=64
+  XTIER_DOWN_BN=128
+  XTIER_DOWN_LAUNCH=8,3
+  XTIER_ENGRAM_CACHE_GIB=4
+  XTIER_GATE_BN=128
+  XTIER_GATE_LAUNCH=8,3
+  XTIER_SPIN_COUNT=32768
+  XTIER_THP=0
+  XTIER_THREADS=32
+  XTIER_TILES_PROD=0
+  XTIER_TP_NODES=0|1
+
+## md5
+  4540baf0ee1d8ae0b4b730df727fc501  /opt/Xtier/snapshots/prod/run-ds41-l20-tp2.sh.golden
+  8af9fc198efc28ac11644561bb228f78  /opt/Xtier/snapshots/prod/DeepSeek-V4.1-Flash.service.golden
+
+## 内核参数 / IOMMU
+  grub:    GRUB_CMDLINE_LINUX_DEFAULT="intel_iommu=on iommu=pt pcie_aspm=off"
+  cmdline: BOOT_IMAGE=/vmlinuz-6.8.0-149-generic root=/dev/mapper/ubuntu--vg-ubuntu--lv ro intel_iommu=on iommu=pt pcie_aspm=off
+  iommu_groups: 316  dmar: 20
