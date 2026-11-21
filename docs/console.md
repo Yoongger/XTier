@@ -12,6 +12,17 @@ cd xtier                       # 仓库根目录
 python3 -m xtier.console       # http://127.0.0.1:8100/
 ```
 
+## 本机部署（8100 挂到 systemd 服务上）
+
+这台机器用独立的 `xtier-console.service` 常驻 8100，开机自启；它在模型服务之前启动，模型 down 后仍存活，所以能看到 OFFLINE / FAULT 并从页面把模型拉起来。入口是 `tools/console_service.py`，它运行的就是上面这份上游控制台代码，只是把 `Console` 的状态源换成 `systemctl`、启停换成 `systemctl start/stop`：
+
+```bash
+systemctl status xtier-console.service
+curl -s http://127.0.0.1:8100/api/status
+```
+
+页面保持上游原样（选项、脚注、文案都不改）。但模型服务的启动参数仍由 `/etc/systemd/system/DeepSeek-V4.1-Flash.service` 的 `Environment=` 和 `run-ds41-l20-tp2.sh` 决定：页面上的选项只在上游自管启动时生效，对本机这个 systemd 服务不生效；页面的「重启 / 停止」按钮分别等价于 `systemctl restart` / `systemctl stop DeepSeek-V4.1-Flash.service`。要手动用上游方式启动一个自管模型，仍按下面的 `python3 -m xtier.console`。
+
 | 参数 | 默认 | 说明 |
 |---|---|---|
 | `--host` | `127.0.0.1` | 监听地址。从别的机器访问用 SSH 隧道：`ssh -L 8100:127.0.0.1:8100 主机` |

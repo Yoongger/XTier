@@ -57,6 +57,9 @@ def _common():
 MODEL = {
     'id': 'ds41-l20', 'order': 10,
     'name': 'DeepSeek V4.1 Flash · L20 TP2', 'code': 'DSV4.1-L20', 'port': 8001, 'served': 'DeepSeek-V4.1-Flash',
+    # the systemd service that owns this model; tools/console_service.py attaches to it
+    'service': 'DeepSeek-V4.1-Flash.service',
+    'log': '/var/log/llm/DeepSeek-V4.1-Flash.log',
     'spec': 'DSpark', 'arch': '40 层 + 3 层 DSpark 草稿 · 384 专家/层 · MXFP4 专家（SM89 软件解码）',
     'hardware': '2×L20 48G SM89（GPU0+2，一卡一 NUMA 节点）· 2×Xeon Gold 6530 · 1007 GiB',
     'ready_timeout': 1800,
