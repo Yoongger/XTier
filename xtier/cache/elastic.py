@@ -307,19 +307,10 @@ class Governor:
                             st = a[0].numel()
                             _check(lib, lib.xtier_mailbox_vmm_map(C.c_void_p(a.data_ptr()), a0 * st, (a1 - a0) * st))
                 except RuntimeError as e:   # out of memory on the way: back to where it was, no growth for a while
-                    # Same SIGBUS fix as release(): this rollback unmap runs on the background grow thread
-                    # concurrently with forwards, so quiesce the pool and drain the device around it.
-                    _check(lib, lib.xtier_mailbox_pool_pause(1))
-                    try:
-                        self._settle()
-                        torch.cuda.synchronize()
-                        for p in self.pools:
-                            for a in p.arena:
-                                lib.xtier_mailbox_vmm_unmap(C.c_void_p(a.data_ptr()), self._slots(p, old) * a[0].numel())
-                            p.active = self._slots(p, old)
-                        torch.cuda.synchronize()
-                    finally:
-                        lib.xtier_mailbox_pool_resume()
+                    for p in self.pools:
+                        for a in p.arena:
+                            lib.xtier_mailbox_vmm_unmap(C.c_void_p(a.data_ptr()), self._slots(p, old) * a[0].numel())
+                        p.active = self._slots(p, old)
                     self.calm_until = time.monotonic() + self.cooldown
                     self._log(f'growth stopped at +{old} slots: {e}')
                     return

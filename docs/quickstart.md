@@ -8,7 +8,7 @@
 
 | 项目 | 要求 |
 |---|---|
-| 显卡 | 24 GB 以上；RTX 4090、RTX 3090、RTX PRO 5000 跑通过 |
+| 显卡 | 24 GB 以上（SM80 起）；RTX PRO 5000 / 6000（SM120）、RTX 4090 / L4（SM89）、RTX 3090（SM86）、A100（SM80）跑通过 |
 | 驱动 | 580 以上（CUDA 13.0），`nvidia-smi` 看 |
 | 内存 | 约 120 GB（运行时峰值约 71 GiB，加载时更高） |
 | 硬盘 | SSD 上 200 GiB 以上（模型 121 GiB，环境约 15 GiB） |
@@ -39,9 +39,9 @@ ln -s lib $CU/lib64
 ## 2. 装 XTier 和测试过的 SGLang
 
 ```bash
-git clone -b v0.1.7 https://github.com/a775828b-dot/xtier $DATA/src/xtier
+git clone -b v0.1.8 https://github.com/a775828b-dot/xtier $DATA/src/xtier
 git clone https://github.com/sgl-project/sglang $DATA/src/sglang
-git -C $DATA/src/sglang checkout 084a5e9aae
+git -C $DATA/src/sglang checkout 4ce41378f9
 
 SGLANG_BUILD_RUST_EXTS=none $P -m pip install --no-build-isolation \
   -c $DATA/src/xtier/constraints.txt -e $DATA/src/sglang/python

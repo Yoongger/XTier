@@ -8,7 +8,7 @@ From an empty machine to the first request. This route uses Qwen3.8 Flash Next: 
 
 | Item | Requirement |
 |---|---|
-| GPU | 24 GB or more; run on RTX 4090, RTX 3090 and RTX PRO 5000 |
+| GPU | 24 GB or more (SM80+); verified on RTX PRO 5000 / 6000 (SM120), RTX 4090 / L4 (SM89), RTX 3090 (SM86), and A100 (SM80) |
 | Driver | 580 or newer (CUDA 13.0), see `nvidia-smi` |
 | Host memory | about 120 GB (about 71 GiB at the peak of serving, more while loading) |
 | Disk | 200 GiB or more on an SSD (the model 121 GiB, the environment about 15 GiB) |
@@ -39,9 +39,9 @@ ln -s lib $CU/lib64
 ## 2. XTier and the tested SGLang
 
 ```bash
-git clone -b v0.1.7 https://github.com/a775828b-dot/xtier $DATA/src/xtier
+git clone -b v0.1.8 https://github.com/a775828b-dot/xtier $DATA/src/xtier
 git clone https://github.com/sgl-project/sglang $DATA/src/sglang
-git -C $DATA/src/sglang checkout 084a5e9aae
+git -C $DATA/src/sglang checkout 4ce41378f9
 
 SGLANG_BUILD_RUST_EXTS=none $P -m pip install --no-build-isolation \
   -c $DATA/src/xtier/constraints.txt -e $DATA/src/sglang/python
