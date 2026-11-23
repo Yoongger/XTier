@@ -31,6 +31,8 @@
 #      deep_gemm.get_paged_mqa_logits_metadata 在 SM89 返回 None -> assert 崩。
 #      过 8 只有三条路：放弃 DSpark(不值) / 换 SM100+ 机器 / 改 SGLang 的 kernel 元数据规划器。
 set -eo pipefail
+# The bundled Rust TreeCore .so was rebuilt from the 4ce41378f9 crate (state_cost field);
+# the default Rust backend loads it directly, no source build needed at startup.
 M=${M:-/opt/models/unsloth/DeepSeek-V4.1-Flash-1017}
 PORT=${PORT:-8001}
 # SPS 投机接受率表（L20 实测）。没有它 DSpark 也能跑，但没有调优收益。
@@ -40,6 +42,9 @@ ENV=/opt/miniforge3/envs/SGLang
 # ---- SM89：架构列表必须是 8.9 ----
 export CUDA_HOME=/usr/local/cuda-13
 export PATH=$CUDA_HOME/bin:$PATH
+# SGLang's Rust extension loader queries `cargo --version` to fingerprint the
+# bundled .so even when no rebuild is needed; the service has no cargo on PATH.
+export PATH=/home/lenovo/.cargo/bin:$PATH
 export PYTHONUNBUFFERED=1
 export PYTORCH_CUDA_ALLOC_CONF=${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}
 export FLASHINFER_CUDA_ARCH_LIST=8.9 TVM_FFI_GPU_BACKEND=cuda TVM_FFI_CUDA_ARCH_LIST=8.9
