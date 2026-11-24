@@ -64,8 +64,8 @@ if [ -n "$P" ]; then
   CMD=$(tr '\0' ' ' < /proc/$P/cmdline 2>/dev/null)
   echo "  pid=$P"
   for expect in "--tp-size 2" "--port 8001" "--schedule-policy fcfs" \
-                "--max-running-requests 8" "--chunked-prefill-size 32768" \
-                "--max-prefill-tokens 32768" "--prefill-decode-interval 32" \
+                "--max-running-requests 8" "--chunked-prefill-size 16384" \
+                "--max-prefill-tokens 16384" "--prefill-decode-interval 32" \
                 "--prefill-max-requests 8" "--cuda-graph-max-bs-decode 8" \
                 "--context-length 262144" "--max-total-tokens 1572864" \
                 "--mem-fraction-static 0.88" "--max-mamba-cache-size 16" \

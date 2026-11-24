@@ -54,6 +54,14 @@ Environment=SPS_TABLE=/opt/Xtier/sps-table-l20-gpu02.json
 Environment=SGLANG_RAGGED_VERIFY_MODE=compact
 # Mamba 状态缓存 16 条（推理会话级 KV）
 Environment=MAMBA_CACHE=16
+# ---- XTier Recall（2026-11-21）----
+# 2026-11-21 晚回滚为关闭：启用后 23 分钟起，TP=2 的 scheduler 在
+# request_receiver._broadcast_reqs_across_ranks 的 broadcast 上连续 3 次卡满 600s
+# （NCCL watchdog 超时 -> DistBackendError -> 整个进程组被杀 -> systemd 重启）。
+# 17:36~19:18 只有 Rust TreeCore、没有 recall 的时间窗内零崩溃，故回滚 recall、保留 Rust。
+# 关掉后 install() 在 `if not enabled(): return` 处直接返回，hook 不再注册 —— 零开销。
+# 若将来要重新启用，需先解决 TP broadcast 卡死问题，并把本行改回 1 + 设 XTIER_RECALL_DIR/BACKEND。
+Environment=XTIER_RECALL=0
 
 # ---- 专家缓存（命中率 74% 的关键，决定性提速项）----
 # 常驻 43 槽 = CHUNK_SLOTS['32768']，是「弹性关掉时」的下限。
@@ -106,8 +114,10 @@ Environment=SCHEDULE=fcfs
 Environment=MAX_REQ=8
 # chunk 32K：每个 prefill chunk 都要为 40 层重传全部 384 个专家（3.36 GiB/层/卡），
 # chunk 越大上传轮数越少。实测冷 100K prefill：8K=1597、16K=2498、32K=3028 tok/s。
-Environment=CHUNK=32768
-Environment=PREFILL_TOKENS=32768
+# 2026-11-21 试验：32768 -> 16384，验证长上下文 forward 显存从 8.6 GiB 减半到 ~4.5 GiB，
+# 避免 OOM 与弹性缓存 eviction（DSH 15万token 上下文导致 cached-token=0 反复全量 prefill）。
+Environment=CHUNK=16384
+Environment=PREFILL_TOKENS=16384
 Environment=PREFILL_REQ=8
 Environment=GRAPH_BS=8
 Environment=CONTEXT=262144
@@ -120,8 +130,27 @@ Environment=PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 # 钉住 rustup 工具链：/opt/sglang/rust/rust-toolchain.toml 要 1.92 + clippy/rustfmt，
 # 缺组件时 rustup 会在后台下载并卡死几十秒到几分钟，SGLang 的 Rust 图像处理器探测就会挂在这里。
 Environment=RUSTUP_TOOLCHAIN=1.92-x86_64-unknown-linux-gnu
+# ---- Rust TreeCore（2026-11-21）----
+# SGLang 的 unified radix cache 默认后端是 rust，本机 cargo 装在 lenovo 名下而本 unit 以 root 运行，
+# PATH 不含 ~/.cargo/bin，于是过去每次启动都降级到 Python TreeCore。
+#
+# 现在把编译好的扩展放在 SGLang 自己的 bundled 位置（该目录的 .gitignore 已列出 mem_cache.so，
+# 即上游预期的存放点，且仓库根 .gitignore 忽略 *.so，因此 git status 保持干净）：
+#   /opt/sglang/python/sglang/srt/mem_cache/rust_tree_core/mem_cache.cpython-312-x86_64-linux-gnu.so
+#
+# BUILD_MODE=never：显式信任 bundled 扩展，永不调用 cargo。
+#   - 不需要在启动路径上有 cargo / 不会因 rustup 后台下载而卡住
+#   - 若 .so 缺失，会直接报错而不是偷偷重编译（缺失时请临时改回 auto 重新构建）
+# 工具链变量保留：其它 Rust 扩展（如 sglang-mm 图像处理器）若启用仍可用。
+# .so 是 2026-11-21 用 envs/SGLang 的 python + torch 2.14.1 编译的（cargo build --features python-extension）：
+#   CXXFLAGS 需带 -include .../rust/sglang-radix-tree/torch_compat.h（torch 2.14 移除了 cholesky/qr 别名）。
+# 指纹只依赖 torch 版本/路径/ABI/CUDA/compat_header 哈希，与 HOME、缓存路径无关。
+Environment=SGLANG_RUST_BUILD_MODE=never
+Environment=PATH=/home/lenovo/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=RUSTUP_HOME=/home/lenovo/.rustup
+Environment=CARGO_HOME=/home/lenovo/.cargo
 
-# 模型日志落到固定文件；8100 看板是独立服务（xtier-dashboard.service），只读跟随此日志
+# 模型日志落到固定文件；8100 控制台是独立服务（xtier-console.service），跟随此日志并启停本服务
 StandardOutput=append:/var/log/llm/DeepSeek-V4.1-Flash.log
 StandardError=append:/var/log/llm/DeepSeek-V4.1-Flash.log
 ExecStart=/bin/bash /opt/Xtier/start-ds41-with-console.sh

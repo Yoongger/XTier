@@ -33,6 +33,11 @@
 set -eo pipefail
 # The bundled Rust TreeCore .so was rebuilt from the 4ce41378f9 crate (state_cost field);
 # the default Rust backend loads it directly, no source build needed at startup.
+export CARGO_HOME=${CARGO_HOME:-/home/lenovo/.cargo}
+export RUSTUP_HOME=${RUSTUP_HOME:-/home/lenovo/.rustup}
+export SGLANG_RUST_BUILD_MODE=${SGLANG_RUST_BUILD_MODE:-never}
+export XTIER_RECALL=${XTIER_RECALL:-0}
+export PATH=${PATH:-/home/lenovo/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin}
 M=${M:-/opt/models/unsloth/DeepSeek-V4.1-Flash-1017}
 PORT=${PORT:-8001}
 # SPS 投机接受率表（L20 实测）。没有它 DSpark 也能跑，但没有调优收益。
@@ -44,7 +49,6 @@ export CUDA_HOME=/usr/local/cuda-13
 export PATH=$CUDA_HOME/bin:$PATH
 # SGLang's Rust extension loader queries `cargo --version` to fingerprint the
 # bundled .so even when no rebuild is needed; the service has no cargo on PATH.
-export PATH=/home/lenovo/.cargo/bin:$PATH
 export PYTHONUNBUFFERED=1
 export PYTORCH_CUDA_ALLOC_CONF=${PYTORCH_CUDA_ALLOC_CONF:-expandable_segments:True}
 export FLASHINFER_CUDA_ARCH_LIST=8.9 TVM_FFI_GPU_BACKEND=cuda TVM_FFI_CUDA_ARCH_LIST=8.9
@@ -155,7 +159,7 @@ ARGS=(
   --skip-server-warmup
   # 8 = 本机(L20/SM89 + DSpark)的真实硬顶：bs>8 时 compact(ragged) verify 失效，退化成 static 后 SGLang 的 indexer 元数据规划器在 SM89 返回 None → assert 崩
   --max-running-requests ${MAX_REQ:-8}
-  --chunked-prefill-size ${CHUNK:-32768} --max-prefill-tokens ${PREFILL_TOKENS:-32768}
+  --chunked-prefill-size ${CHUNK:-16384} --max-prefill-tokens ${PREFILL_TOKENS:-16384}
   --prefill-max-requests ${PREFILL_REQ:-8} --cuda-graph-max-bs-decode ${GRAPH_BS:-8}
   --context-length ${CONTEXT:-262144} --max-total-tokens ${KV_POOL:-1572864}
   --mem-fraction-static ${MEM:-0.88}
